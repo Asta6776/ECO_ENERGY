@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"/>
+  <title>Eco‑Saver Pro · ANECO Energy Tracker</title>
+  <meta name="theme-color" content="#1a3a2a"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="EcoSaver"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,800;1,9..144,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+:root {
+  --forest:    #0d2218;
+  --canopy:    #1a3a2a;
+  --moss:      #2d5a3d;
+  --fern:      #3d7a52;
+  --leaf:      #52a86e;
+  --lime:      #8fd48c;
+  --mist:      #c8e8c0;
+  --cream:     #f4f0e6;
+  --soil:      #8b6f47;
+  --amber:     #e8a030;
+  --coral:     #e05a4e;
+  --sky:       #6bb8d4;
+  --text-h:    #f4f0e6;
+  --text-b:    #c8dbc0;
+  --text-dim:  #7aaa85;
+  --text-dark: #1a3a2a;
+  --r-sm: 14px;
+  --r-md: 20px;
+  --r-lg: 28px;
+  --r-xl: 38px;
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --nav-h: 72px;
+  --header-h: 64px;
+  --ease-spring: cubic-bezier(0.34,1.56,0.64,1);
+  --ease-smooth: cubic-bezier(0.4,0,0.2,1);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--forest);color:var(--text-b);height:100%;overflow:hidden;-webkit-font-smoothing:antialiased;}
+
+/* ── ORGANIC BACKGROUND ── */
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.blob{position:absolute;border-radius:60% 40% 55% 45% / 50% 60% 40% 50%;filter:blur(60px);opacity:.18;animation:blobFloat 20s ease-in-out infinite alternate}
+.blob-1{width:340px;height:280px;background:var(--fern);top:-60px;left:-80px}
+.blob-2{width:260px;height:320px;background:var(--leaf);top:30%;right:-100px;animation-delay:-7s}
+.blob-3{width:300px;height:260px;background:var(--moss);bottom:10%;left:-60px;animation-delay:-14s}
+.blob-4{width:200px;height:200px;background:var(--lime);top:55%;right:10%;animation-delay:-4s;opacity:.1}
+@keyframes blobFloat{0%{transform:translate(0,0) scale(1) rotate(0deg)}100%{transform:translate(20px,30px) scale(1.08) rotate(8deg)}}
+#bg-canvas::after{content:'';position:absolute;inset:0;background-image:radial-gradient(ellipse 1px 2px at 20% 30%,rgba(140,210,130,.15) 0%,transparent 100%),radial-gradient(ellipse 1px 2px at 70% 20%,rgba(140,210,130,.10) 0%,transparent 100%),radial-gradient(ellipse 1px 2px at 50% 70%,rgba(140,210,130,.12) 0%,transparent 100%);background-size:80px 80px,120px 120px,100px 100px}
+
+/* ── SHELL ── */
+#shell{position:fixed;inset:0;z-index:1;display:flex;flex-direction:column;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
+#status-bar{flex-shrink:0;height:var(--header-h);display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:rgba(13,34,24,.7);backdrop-filter:blur(20px);border-bottom:1px solid rgba(82,168,110,.15)}
+.status-left{display:flex;flex-direction:column}
+.app-name{font-family:'Fraunces',serif;font-weight:800;font-size:1.15rem;color:var(--text-h);letter-spacing:-.3px}
+.app-name em{font-style:italic;color:var(--lime)}
+#clock{font-size:.72rem;color:var(--text-dim);margin-top:2px;transition:opacity .3s}
+.status-right{display:flex;align-items:center;gap:8px}
+
+/* ── PEAK PILL ── */
+#peak-pill{display:none;background:rgba(232,160,48,.18);border:1px solid rgba(232,160,48,.4);color:var(--amber);border-radius:20px;padding:3px 10px;font-size:.7rem;font-weight:700;animation:pulsePeak 2s ease-in-out infinite}
+@keyframes pulsePeak{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(.97)}}
+
+/* ── GRADE PILL ── */
+#grade-pill{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:800;font-size:1rem;background:rgba(82,168,110,.2);border:2px solid var(--leaf);color:var(--lime);transition:all .4s var(--ease-spring)}
+#grade-pill.grade-C{background:rgba(232,160,48,.2);border-color:var(--amber);color:var(--amber)}
+#grade-pill.grade-F{background:rgba(224,90,78,.2);border-color:var(--coral);color:var(--coral)}
+
+/* ── SCROLL & VIEWS ── */
+#scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+#scroll-area::-webkit-scrollbar{display:none}
+
+.view{display:none;padding:16px 16px 24px;animation:viewIn .35s var(--ease-smooth)}
+.view.active{display:block}
+.view.slide-out-left{animation:slideOutLeft .25s var(--ease-smooth) forwards}
+.view.slide-in-right{animation:slideInRight .3s var(--ease-smooth) forwards}
+@keyframes viewIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes slideOutLeft{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(-24px)}}
+@keyframes slideInRight{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+
+/* ── ALERTS ── */
+#alerts{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.alert{border-radius:var(--r-sm);padding:10px 14px;font-size:.82rem;font-weight:500;display:flex;align-items:flex-start;gap:8px;animation:alertSlide .4s var(--ease-spring)}
+@keyframes alertSlide{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+.alert-warn{background:rgba(232,160,48,.12);border:1px solid rgba(232,160,48,.3);color:var(--amber)}
+.alert-danger{background:rgba(224,90,78,.12);border:1px solid rgba(224,90,78,.35);color:var(--coral)}
+.alert-info{background:rgba(82,168,110,.1);border:1px solid rgba(82,168,110,.25);color:var(--lime)}
+
+/* ── HERO CARD ── */
+.hero-card{background:linear-gradient(145deg,var(--canopy),var(--moss));border:1px solid rgba(82,168,110,.25);border-radius:var(--r-xl);padding:24px 22px 20px;margin-bottom:14px;position:relative;overflow:hidden;transition:transform .2s var(--ease-spring),box-shadow .2s}
+.hero-card::before{content:'🌿';position:absolute;right:-14px;top:-20px;font-size:120px;opacity:.06;transform:rotate(20deg)}
+.hero-label{font-size:.68rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim)}
+.hero-bill{font-family:'Fraunces',serif;font-size:3.2rem;font-weight:800;color:var(--text-h);line-height:1;letter-spacing:-2px;transition:all .5s var(--ease-smooth)}
+.hero-bill span{font-size:1.6rem;color:var(--lime);vertical-align:super}
+.hero-sub{font-size:.82rem;color:var(--text-dim);margin-bottom:18px}
+.bbar-track{height:8px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden;margin-bottom:8px}
+.bbar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--leaf),var(--lime));transition:width .8s cubic-bezier(.4,0,.2,1)}
+.bbar-fill.warn{background:linear-gradient(90deg,var(--amber),#ffc06a)}
+.bbar-fill.over{background:linear-gradient(90deg,var(--coral),#ff8f84)}
+.bbar-nums{display:flex;justify-content:space-between;font-size:.76rem;color:var(--text-dim)}
+.bbar-nums .hi{color:var(--text-h);font-weight:600}
+.qstats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:16px}
+.qstat{background:rgba(255,255,255,.06);border-radius:var(--r-md);padding:12px 10px;text-align:center;transition:transform .2s var(--ease-spring),background .2s}
+.qstat:active{transform:scale(.95);background:rgba(255,255,255,.1)}
+.qstat-val{font-family:'Fraunces',serif;font-size:1.3rem;font-weight:600;color:var(--text-h);transition:all .4s var(--ease-smooth)}
+.qstat-lbl{font-size:.62rem;color:var(--text-dim);margin-top:3px;text-transform:uppercase}
+
+/* ── SECTION TITLE ── */
+.sec-title{font-family:'Fraunces',serif;font-size:1.1rem;font-weight:600;color:var(--text-h);margin:18px 0 10px;display:flex;justify-content:space-between;align-items:center}
+
+/* ── VAMPIRE CARD ── */
+.vampire-card{background:rgba(224,90,78,.08);border:1px solid rgba(224,90,78,.2);border-radius:var(--r-lg);padding:16px 18px;display:flex;align-items:center;gap:14px;margin-bottom:14px;transition:transform .2s var(--ease-spring),background .2s}
+.vampire-card:active{transform:scale(.98)}
+.vampire-icon{font-size:2rem;animation:vampirePulse 3s ease-in-out infinite}
+@keyframes vampirePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.vampire-info .label{font-size:.65rem;text-transform:uppercase;color:var(--coral);font-weight:700}
+.vampire-info .name{font-family:'Fraunces',serif;font-size:1.1rem;font-weight:600;color:var(--text-h)}
+
+/* ── LEAF CARD ── */
+.leaf-card{background:var(--canopy);border:1px solid rgba(82,168,110,.15);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;position:relative;transition:transform .2s var(--ease-spring),border-color .2s,background .2s;animation:cardIn .4s var(--ease-spring) both}
+@keyframes cardIn{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+.leaf-card:active{transform:scale(.98)}
+.leaf-card::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--leaf),var(--lime));border-radius:2px 0 0 2px}
+.lc-icon{width:44px;height:44px;border-radius:var(--r-sm);background:rgba(82,168,110,.12);border:1px solid rgba(82,168,110,.2);display:flex;align-items:center;justify-content:center;font-size:1.3rem;transition:transform .2s var(--ease-spring)}
+.leaf-card:hover .lc-icon{transform:scale(1.08)}
+.lc-body{flex:1}
+.lc-name{font-weight:600;color:var(--text-h)}
+.lc-meta{font-size:.74rem;color:var(--text-dim)}
+.lc-right{text-align:right}
+.lc-kwh{font-family:'Fraunces',serif;font-size:1rem;font-weight:600;color:var(--lime)}
+.lc-cost{font-size:.74rem;color:var(--text-dim)}
+.lc-actions{display:flex;gap:6px;margin-top:8px}
+.lc-btn{flex:1;padding:7px 6px;border-radius:8px;border:1px solid;font-size:.74rem;font-weight:600;cursor:pointer;background:rgba(82,168,110,.1);border-color:rgba(82,168,110,.3);color:var(--leaf);transition:all .15s var(--ease-smooth);position:relative;overflow:hidden}
+.lc-btn:active{transform:scale(.94)}
+.lc-btn::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.15);opacity:0;transition:opacity .1s}
+.lc-btn:active::after{opacity:1}
+.lc-btn-del{background:rgba(224,90,78,.1);border-color:rgba(224,90,78,.3);color:var(--coral)}
+.lc-btn-del:active{transform:scale(.94)}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:40px 20px;background:var(--canopy);border:1px dashed rgba(82,168,110,.2);border-radius:var(--r-xl);animation:viewIn .4s var(--ease-smooth)}
+
+/* ── TIP CARD ── */
+.tip-card{background:var(--canopy);border:1px solid rgba(82,168,110,.15);border-radius:var(--r-lg);padding:16px;margin-bottom:10px;display:flex;gap:14px;transition:transform .2s var(--ease-spring),border-color .2s;animation:cardIn .4s var(--ease-spring) both}
+.tip-card:nth-child(2){animation-delay:.05s}
+.tip-card:nth-child(3){animation-delay:.1s}
+.tip-card:nth-child(4){animation-delay:.15s}
+.tip-ico{font-size:1.7rem}
+.tip-body .tip-title{font-weight:700;color:var(--text-h)}
+.tip-save{display:inline-block;margin-top:8px;background:rgba(143,212,140,.12);border:1px solid rgba(143,212,140,.25);color:var(--lime);font-size:.72rem;font-weight:700;border-radius:20px;padding:2px 10px}
+
+/* ── SETTINGS ── */
+.settings-section{background:var(--canopy);border:1px solid rgba(82,168,110,.15);border-radius:var(--r-xl);overflow:hidden;margin-bottom:14px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(82,168,110,.08);transition:background .15s}
+.settings-row:last-child{border-bottom:none}
+.settings-row:active{background:rgba(82,168,110,.06)}
+.sr-label{font-size:.88rem;color:var(--text-h);font-weight:500}
+.sr-sub{font-size:.74rem;color:var(--text-dim)}
+.settings-input{background:rgba(255,255,255,.07);border:1px solid rgba(82,168,110,.25);color:var(--text-h);border-radius:10px;padding:7px 12px;width:100px;text-align:right;transition:border-color .2s,background .2s}
+.settings-input:focus{outline:none;border-color:var(--leaf);background:rgba(82,168,110,.1)}
+
+/* ── PILL BUTTONS (shared ripple & press) ── */
+.pill-btn{padding:7px 16px;border-radius:20px;border:1px solid;font-size:.8rem;font-weight:700;cursor:pointer;position:relative;overflow:hidden;transition:transform .15s var(--ease-spring),opacity .15s}
+.pill-btn:active{transform:scale(.93)}
+.pill-btn::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.18);opacity:0;transition:opacity .12s}
+.pill-btn:active::after{opacity:1}
+.pill-btn-green{background:rgba(82,168,110,.12);border-color:rgba(82,168,110,.35);color:var(--leaf)}
+.pill-btn-amber{background:rgba(232,160,48,.1);border-color:rgba(232,160,48,.3);color:var(--amber)}
+.pill-btn-red{background:rgba(224,90,78,.1);border-color:rgba(224,90,78,.3);color:var(--coral)}
+
+/* ── FAB ── */
+#fab{position:fixed;bottom:calc(var(--nav-h) + 16px + var(--safe-bottom));right:20px;width:56px;height:56px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--fern),var(--leaf));color:var(--text-h);font-size:1.6rem;box-shadow:0 6px 24px rgba(61,122,82,.45);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .25s var(--ease-spring),box-shadow .25s;z-index:50}
+#fab:hover{transform:scale(1.08);box-shadow:0 10px 32px rgba(61,122,82,.55)}
+#fab:active{transform:scale(.92)}
+#fab .fab-inner{display:flex;align-items:center;justify-content:center;transition:transform .3s var(--ease-spring)}
+#fab.active .fab-inner{transform:rotate(45deg)}
+
+/* ── BOTTOM NAV ── */
+#bottom-nav{flex-shrink:0;height:calc(var(--nav-h) + var(--safe-bottom));background:rgba(13,34,24,.85);backdrop-filter:blur(24px);border-top:1px solid rgba(82,168,110,.12);display:flex;padding-top:4px}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:transparent;border:none;color:var(--text-dim);cursor:pointer;transition:color .2s var(--ease-smooth);position:relative;overflow:hidden}
+.nav-btn::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:0;height:2px;background:var(--lime);border-radius:2px;transition:width .3s var(--ease-spring)}
+.nav-btn.active{color:var(--lime)}
+.nav-btn.active::before{width:24px}
+.nav-btn:active .nav-icon{transform:scale(.85);transition:transform .1s}
+.nav-icon{width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;transition:transform .2s var(--ease-spring)}
+.nav-btn.active .nav-icon{transform:scale(1.12)}
+.nav-label{font-size:.62rem;font-weight:600;transition:letter-spacing .2s}
+.nav-btn.active .nav-label{letter-spacing:.3px}
+
+/* ── GRADE SECTION ── */
+.grade-big{background:var(--canopy);border-radius:var(--r-xl);padding:28px 20px;text-align:center;margin-bottom:14px}
+.grade-ring{width:110px;height:110px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:3.2rem;font-weight:800;border:3px solid var(--leaf);background:rgba(82,168,110,.1);color:var(--lime);margin:0 auto 14px;transition:all .5s var(--ease-spring)}
+.grade-ring.C{border-color:var(--amber);color:var(--amber)}
+.grade-ring.F{border-color:var(--coral);color:var(--coral)}
+
+/* ── LIFELINE CARD ── */
+#lifelineCard{animation:cardIn .5s var(--ease-spring)}
+
+/* ── SHEET (bottom drawer) ── */
+#form-sheet{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;justify-content:flex-end;pointer-events:none}
+#form-sheet.open{pointer-events:auto}
+.sheet-backdrop{position:absolute;inset:0;background:rgba(5,15,10,.7);backdrop-filter:blur(6px);opacity:0;transition:opacity .3s var(--ease-smooth)}
+#form-sheet.open .sheet-backdrop{opacity:1}
+.sheet-panel{position:relative;z-index:1;background:var(--canopy);border-radius:var(--r-xl) var(--r-xl) 0 0;padding:0 0 calc(20px + var(--safe-bottom));max-height:92vh;overflow-y:auto;transform:translateY(100%);transition:transform .35s var(--ease-spring)}
+#form-sheet.open .sheet-panel{transform:translateY(0)}
+.sheet-header{padding:16px 20px;display:flex;justify-content:space-between;border-bottom:1px solid rgba(82,168,110,.12);align-items:center}
+.sheet-title{font-family:'Fraunces',serif;font-size:1.2rem;font-weight:700;color:var(--text-h)}
+.sheet-close{background:rgba(82,168,110,.1);border:1px solid rgba(82,168,110,.2);color:var(--text-dim);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .15s var(--ease-spring)}
+.sheet-close:active{transform:scale(.88);background:rgba(224,90,78,.12);color:var(--coral)}
+.sheet-body{padding:16px 20px}
+.field-label{display:block;font-size:.74rem;color:var(--text-dim);font-weight:600;letter-spacing:.5px;margin-bottom:6px;text-transform:uppercase}
+.field-input,.field-select{width:100%;background:rgba(255,255,255,.06);border:1.5px solid rgba(82,168,110,.2);color:var(--text-h);border-radius:var(--r-sm);padding:11px 14px;font-size:.95rem;transition:border-color .2s,background .2s;outline:none}
+.field-input:focus,.field-select:focus{border-color:var(--leaf);background:rgba(82,168,110,.08)}
+.field-select option{background:var(--canopy)}
+.form-field{margin-bottom:12px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.form-actions{display:flex;gap:10px;margin-top:18px}
+.btn-cancel-form{flex:.4;padding:14px;background:rgba(255,255,255,.05);color:var(--text-dim);border:1px solid rgba(82,168,110,.15);border-radius:var(--r-md);font-weight:600;cursor:pointer;transition:all .15s var(--ease-smooth)}
+.btn-cancel-form:active{transform:scale(.95)}
+.btn-submit{flex:1;padding:14px;background:linear-gradient(135deg,var(--fern),var(--leaf));color:var(--text-h);border:none;border-radius:var(--r-md);font-weight:700;font-size:1rem;cursor:pointer;position:relative;overflow:hidden;transition:transform .15s var(--ease-spring),opacity .15s}
+.btn-submit:active{transform:scale(.96)}
+.btn-submit::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.15);opacity:0;transition:opacity .1s}
+.btn-submit:active::after{opacity:1}
+
+/* ── RIPPLE ANIMATION ── */
+@keyframes rippleAnim{0%{transform:scale(0);opacity:.35}100%{transform:scale(2.5);opacity:0}}
+.ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.25);pointer-events:none;animation:rippleAnim .45s ease-out forwards}
+
+/* ── NUMBER COUNTER ANIMATION ── */
+@keyframes numPop{0%{transform:scale(1.25);color:var(--lime)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+.num-pop{animation:numPop .4s var(--ease-spring)}
+
+/* ── REFRESH SPINNER ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinning{animation:spin .7s linear infinite}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:calc(var(--nav-h) + 80px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:rgba(13,34,24,.92);backdrop-filter:blur(12px);border:1px solid rgba(82,168,110,.25);color:var(--text-h);padding:9px 20px;border-radius:20px;font-size:.85rem;font-weight:600;z-index:300;opacity:0;transition:opacity .2s,transform .25s var(--ease-spring);pointer-events:none}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  </style>
+</head>
+<body>
+<div id="bg-canvas"><div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div><div class="blob blob-4"></div></div>
+
+<div id="shell">
+  <header id="status-bar">
+    <div class="status-left">
+      <div class="app-name">Eco<em>Saver</em> Pro</div>
+      <div id="clock">--:--:--</div>
+    </div>
+    <div class="status-right">
+      <div id="peak-pill">⚡ Peak</div>
+      <div id="grade-pill">A</div>
+    </div>
+  </header>
+
+  <div id="scroll-area">
+    <!-- HOME VIEW -->
+    <div class="view active" id="view-home">
+      <div id="alerts"></div>
+      <div class="hero-card">
+        <div class="hero-label">Estimated Monthly Bill</div>
+        <div class="hero-bill"><span>₱</span><span id="h-bill">0.00</span></div>
+        <div class="hero-sub" id="h-sub">Add appliances to begin</div>
+        <div class="bbar-track"><div class="bbar-fill" id="bbar" style="width:0%"></div></div>
+        <div class="bbar-nums">
+          <span>Used: <span class="hi" id="b-used">₱0.00</span></span>
+          <span id="b-pct">—</span>
+          <span id="b-remain">Budget: ₱1,000</span>
+        </div>
+        <div class="qstats">
+          <div class="qstat"><div class="qstat-val" id="q-kwh">0</div><div class="qstat-lbl">kWh/mo</div></div>
+          <div class="qstat"><div class="qstat-val" id="q-day">0</div><div class="qstat-lbl">kWh/day</div></div>
+          <div class="qstat"><div class="qstat-val" id="q-count">0</div><div class="qstat-lbl">Appliances</div></div>
+        </div>
+      </div>
+
+      <div id="lifelineCard" style="display:none;background:linear-gradient(135deg,var(--canopy),#1e4a2e);border-radius:var(--r-xl);padding:16px;margin-bottom:14px;border:1px solid rgba(143,212,140,.2)">
+        <div style="display:flex;gap:12px;margin-bottom:12px">
+          <span style="font-size:1.8rem">🌾</span>
+          <div style="flex:1">
+            <div style="font-size:.7rem;color:var(--lime)">Lifeline Discount Eligible</div>
+            <div style="font-size:.85rem;font-weight:600">20% off if under 100 kWh/month</div>
+          </div>
+        </div>
+        <div class="bbar-track" style="height:12px"><div class="bbar-fill" id="lifelineBar" style="width:0%"></div></div>
+        <div class="bbar-nums"><span>Current: <strong id="currentKwh">0</strong> kWh</span><span id="lifelineRemaining">100 kWh limit</span></div>
+      </div>
+
+      <div class="vampire-card">
+        <div class="vampire-icon">⚡</div>
+        <div class="vampire-info">
+          <div class="label">Energy Vampire</div>
+          <div class="name" id="vamp-name">—</div>
+          <div class="detail" id="vamp-detail">Add appliances</div>
+        </div>
+      </div>
+
+      <div class="sec-title">My Appliances <span id="home-count">0</span></div>
+      <div id="home-list"><div class="empty-state"><span style="font-size:2rem">🌱</span><p style="margin-top:8px;color:var(--text-dim)">No appliances yet.<br>Tap + to add</p></div></div>
+    </div>
+
+    <!-- DEVICES VIEW -->
+    <div class="view" id="view-appliances">
+      <div class="sec-title">Energy Inventory <span id="inv-count">0</span></div>
+      <div id="inv-list"></div>
+    </div>
+
+    <!-- TIPS VIEW -->
+    <div class="view" id="view-tips">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="sec-title" style="margin:0">💡 Smart Saving Tips</div>
+        <button class="pill-btn pill-btn-green" id="btn-refresh" onclick="handleRefresh(this)">🔄 Refresh</button>
+      </div>
+      <div id="tips-container"><div class="empty-state"><span style="font-size:2rem">💡</span><p style="margin-top:8px;color:var(--text-dim)">Add appliances to see tips</p></div></div>
+    </div>
+
+    <!-- GRADE VIEW -->
+    <div class="view" id="view-grade">
+      <div class="sec-title">Efficiency Report</div>
+      <div class="grade-big">
+        <div class="grade-ring q" id="big-grade">?</div>
+        <div class="grade-title" id="big-grade-title" style="font-family:'Fraunces',serif;font-size:1.2rem;font-weight:600;color:var(--text-h)">—</div>
+        <div class="grade-detail" id="big-grade-detail" style="font-size:.85rem;color:var(--text-dim);margin-top:4px">Set budget</div>
+      </div>
+      <div class="sec-title">Breakdown</div>
+      <div id="grade-breakdown"></div>
+      <div class="sec-title" style="margin-top:20px;font-size:.95rem">🔍 ANECO Unbundled Breakdown <span style="font-size:.75rem;color:var(--text-dim);font-family:'DM Sans',sans-serif">Where your ₱ goes</span></div>
+      <div style="background:var(--canopy);border-radius:var(--r-xl);padding:16px">
+        <canvas id="unbundledChart" width="400" height="250" style="max-height:250px;width:100%"></canvas>
+        <div id="rateBreakdownList" style="margin-top:16px;font-size:.75rem"></div>
+        <div style="height:1px;background:rgba(82,168,110,.15);margin:12px 0"></div>
+        <div style="text-align:center;font-size:.7rem;color:var(--text-dim)">⚡ VAT applies to Generation, Transmission & System Loss</div>
+      </div>
+    </div>
+
+    <!-- SETTINGS VIEW -->
+    <div class="view" id="view-settings">
+      <div class="sec-title">Settings</div>
+      <div class="settings-section">
+        <div class="settings-row">
+          <div><div class="sr-label">Electricity Rate</div><div class="sr-sub">₱ per kWh</div></div>
+          <input type="number" class="settings-input" id="s-rate" step="0.01" value="12.00">
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Rate Source</div><div class="sr-sub">ANECO official rates</div></div>
+          <button class="pill-btn pill-btn-green" id="useAnecoBtn">📋 Use ANECO</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Rate Details</div><div class="sr-sub" id="rateDetail">₱/kWh</div></div>
+          <button class="pill-btn pill-btn-amber" id="showRateDetailsBtn">🔍 Details</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Monthly Budget</div><div class="sr-sub">Target spend</div></div>
+          <input type="number" class="settings-input" id="s-budget" step="50" value="1000">
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Reset Defaults</div></div>
+          <button class="pill-btn pill-btn-amber" onclick="resetDefaults()">Reset</button>
+        </div>
+      </div>
+      <div class="sec-title">Data</div>
+      <div class="settings-section">
+        <div class="settings-row">
+          <div><div class="sr-label">Export Data</div></div>
+          <button class="pill-btn pill-btn-green" onclick="exportData()">📤 Export</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Import Data</div></div>
+          <button class="pill-btn pill-btn-green" onclick="document.getElementById('file-input').click()">📥 Import</button>
+          <input type="file" id="file-input" accept=".json" style="display:none">
+        </div>
+        <div class="settings-row">
+          <div><div class="sr-label">Clear All</div></div>
+          <button class="pill-btn pill-btn-red" onclick="clearAll()">🗑 Clear</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav id="bottom-nav">
+    <button class="nav-btn active" onclick="switchView('home',this)"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></button>
+    <button class="nav-btn" onclick="switchView('appliances',this)"><div class="nav-icon">🔌</div><div class="nav-label">Devices</div></button>
+    <button class="nav-btn" onclick="switchView('tips',this)"><div class="nav-icon">💡</div><div class="nav-label">Tips</div></button>
+    <button class="nav-btn" onclick="switchView('grade',this)"><div class="nav-icon">📊</div><div class="nav-label">Grade</div></button>
+    <button class="nav-btn" onclick="switchView('settings',this)"><div class="nav-icon">⚙️</div><div class="nav-label">Settings</div></button>
+  </nav>
+</div>
+
+<button id="fab" onclick="openSheet()"><span class="fab-inner">+</span></button>
+<div id="toast"></div>
+
+<!-- FORM SHEET -->
+<div id="form-sheet">
+  <div class="sheet-backdrop" onclick="closeSheet()"></div>
+  <div class="sheet-panel">
+    <div class="sheet-header">
+      <div class="sheet-title" id="sheet-title">Add Appliance</div>
+      <button class="sheet-close" onclick="closeSheet()">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="form-field"><label class="field-label">Name</label><input class="field-input" id="f-name" placeholder="e.g., Aircon, TV, Fridge"></div>
+      <div class="field-row">
+        <div class="form-field"><label class="field-label">Watts</label><input class="field-input" type="number" id="f-watts" placeholder="e.g. 750" step="1"></div>
+        <div class="form-field"><label class="field-label">Quantity</label><input class="field-input" type="number" id="f-qty" value="1"></div>
+      </div>
+      <div class="field-row">
+        <div class="form-field"><label class="field-label">Hrs / Day</label><input class="field-input" type="number" id="f-hours" placeholder="e.g. 8" step="0.5"></div>
+        <div class="form-field"><label class="field-label">Frequency</label>
+          <select class="field-select" id="f-freq">
+            <option value="daily">Daily</option>
+            <option value="3x">3× / week</option>
+            <option value="weekends">Weekends</option>
+            <option value="1x">Once / week</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-cancel-form" onclick="closeSheet()">Cancel</button>
+        <button class="btn-submit" id="btn-submit" onclick="submitForm()">Add Appliance</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── ANECO UNBUNDLED RATES ──
+const ANECO_RATES = {generation:6.8542,transmission:0.9437,systemLoss:0.6135,distribution:1.4258,supply:0.3245,metering:0.1823,lifelineSubsidy:0.0512,seniorSubsidy:0.0218,environmental:0.0125,missionary:0.0198};
+function getANECORate(){let vat=(ANECO_RATES.generation+ANECO_RATES.transmission+ANECO_RATES.systemLoss)*0.12;return ANECO_RATES.generation+ANECO_RATES.transmission+ANECO_RATES.systemLoss+ANECO_RATES.distribution+ANECO_RATES.supply+ANECO_RATES.metering+ANECO_RATES.lifelineSubsidy+ANECO_RATES.seniorSubsidy+ANECO_RATES.environmental+ANECO_RATES.missionary+vat;}
+
+// ── STATE ──
+const FREQ={daily:1,'3x':3/7,weekends:2/7,'1x':1/7};
+let appliances=[],rate=getANECORate(),budget=1000,editingId=null;
+let unbundledChart=null;
+let prevBill=0;
+
+// ── UTILS ──
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function save(){localStorage.setItem('esp_appliances',JSON.stringify(appliances));localStorage.setItem('esp_rate',rate);localStorage.setItem('esp_budget',budget);}
+function kwhMonth(a){return(a.watts*a.qty*a.hours*(FREQ[a.freq]||1)*30)/1000;}
+function costMonth(a){return kwhMonth(a)*rate;}
+function calcTotals(){let kwhT=0,costT=0,vamp=null,vampKwh=0;appliances.forEach(a=>{let k=kwhMonth(a),c=costMonth(a);kwhT+=k;costT+=c;if(k>vampKwh){vampKwh=k;vamp=a;}});return{kwhT,costT,vamp,vampKwh};}
+function appIcon(n){let name=n.toLowerCase();if(name.includes('air')||name.includes('ac'))return'❄️';if(name.includes('tv'))return'📺';if(name.includes('ref'))return'🧊';if(name.includes('wash'))return'🫧';if(name.includes('light'))return'💡';if(name.includes('computer'))return'🖥️';return'🔌';}
+
+// ── TOAST ──
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; clearTimeout(toastTimer);
+  t.classList.add('show');
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ── RIPPLE ──
+function addRipple(btn,e){
+  const r=document.createElement('span');
+  r.className='ripple';
+  const rect=btn.getBoundingClientRect();
+  const size=Math.max(rect.width,rect.height)*1.2;
+  const x=(e.clientX-rect.left)-(size/2);
+  const y=(e.clientY-rect.top)-(size/2);
+  r.style.cssText=`width:${size}px;height:${size}px;left:${x}px;top:${y}px`;
+  btn.appendChild(r);
+  setTimeout(()=>r.remove(),500);
+}
+document.addEventListener('click',e=>{
+  const btn=e.target.closest('.pill-btn,.btn-submit,.lc-btn,.nav-btn');
+  if(btn) addRipple(btn,e);
+});
+
+// ── LIFELINE CARD ──
+function updateLifelineCard(){
+  let{kwhT}=calcTotals();let card=document.getElementById('lifelineCard');if(!card)return;
+  if(kwhT>0&&kwhT<=100){card.style.display='block';document.getElementById('lifelineBar').style.width=(kwhT/100)*100+'%';document.getElementById('currentKwh').innerText=kwhT.toFixed(1);document.getElementById('lifelineRemaining').innerHTML=`🎯 ${(100-kwhT).toFixed(1)} kWh to goal`;}
+  else if(kwhT>100&&kwhT<=110){card.style.display='block';document.getElementById('lifelineBar').style.width='100%';document.getElementById('currentKwh').innerText=kwhT.toFixed(1);document.getElementById('lifelineRemaining').innerHTML=`⚠️ ${(kwhT-100).toFixed(1)} kWh over limit`;}
+  else if(kwhT>110){card.style.display='block';document.getElementById('lifelineBar').style.width='100%';document.getElementById('currentKwh').innerText=kwhT.toFixed(1);document.getElementById('lifelineRemaining').innerHTML=`❌ Over limit by ${(kwhT-100).toFixed(1)} kWh`;}
+  else card.style.display='none';
+}
+
+// ── UNBUNDLED CHART ──
+function renderUnbundledChart(){
+  let{kwhT}=calcTotals();let kwh=kwhT>0?kwhT:100;
+  let comps={'Generation':ANECO_RATES.generation*kwh,'Transmission':ANECO_RATES.transmission*kwh,'System Loss':ANECO_RATES.systemLoss*kwh,'Distribution':ANECO_RATES.distribution*kwh,'Supply & Metering':(ANECO_RATES.supply+ANECO_RATES.metering)*kwh,'Lifeline Subsidy':ANECO_RATES.lifelineSubsidy*kwh,'Senior Subsidy':ANECO_RATES.seniorSubsidy*kwh,'Environmental':ANECO_RATES.environmental*kwh,'Missionary':ANECO_RATES.missionary*kwh,'VAT':(ANECO_RATES.generation+ANECO_RATES.transmission+ANECO_RATES.systemLoss)*0.12*kwh};
+  let total=Object.values(comps).reduce((a,b)=>a+b,0);
+  let ctx=document.getElementById('unbundledChart')?.getContext('2d');
+  if(ctx){if(unbundledChart)unbundledChart.destroy();unbundledChart=new Chart(ctx,{type:'doughnut',data:{labels:Object.keys(comps),datasets:[{data:Object.values(comps),backgroundColor:['#4CAF50','#FFC107','#FF5722','#2196F3','#9C27B0','#FF9800','#795548','#607D8B','#E91E63','#00BCD4'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,animation:{animateRotate:true,duration:800},plugins:{legend:{position:'bottom',labels:{color:'#c8dbc0',font:{size:10}}},tooltip:{callbacks:{label:(ctx)=>`${ctx.label}: ₱${ctx.raw.toFixed(2)} (${((ctx.raw/total)*100).toFixed(1)}%)`}}}}});}
+  let listHtml=Object.keys(comps).map(k=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(82,168,110,.06)"><span style="color:var(--text-dim)">${k}</span><span style="color:var(--lime);font-weight:600">₱${comps[k].toFixed(2)}</span></div>`).join('');
+  document.getElementById('rateBreakdownList').innerHTML=`<div style="background:rgba(82,168,110,.1);padding:8px 12px;border-radius:12px;margin-bottom:8px;display:flex;justify-content:space-between"><span style="color:var(--text-dim)">Total (${kwh.toFixed(1)} kWh)</span><strong style="color:var(--text-h)">₱${total.toFixed(2)}</strong></div>${listHtml}`;
+}
+
+// ── ANIMATED COUNTER ──
+function animateValue(el, from, to, duration=500){
+  if(Math.abs(to-from)<0.01){el.innerText=to.toFixed(2);return;}
+  let start=null;
+  function step(ts){
+    if(!start)start=ts;
+    let p=Math.min((ts-start)/duration,1);
+    let ease=1-Math.pow(1-p,3);
+    el.innerText=(from+(to-from)*ease).toFixed(2);
+    if(p<1)requestAnimationFrame(step);
+    else el.innerText=to.toFixed(2);
+  }
+  requestAnimationFrame(step);
+}
+
+// ── RENDER ──
+function render(){
+  let{kwhT,costT,vamp,vampKwh}=calcTotals();
+  let dailyKwh=kwhT/30;
+  let pct=budget>0?(costT/budget)*100:0;
+
+  // Bill counter animation
+  let billEl=document.getElementById('h-bill');
+  animateValue(billEl,prevBill,costT,600);
+  prevBill=costT;
+
+  let bbar=document.getElementById('bbar');
+  bbar.style.width=Math.min(pct,100)+'%';
+  bbar.className='bbar-fill'+(costT>budget?' over':pct>=80?' warn':'');
+  document.getElementById('b-used').innerText='₱'+costT.toFixed(2);
+  document.getElementById('b-pct').innerText=budget>0?pct.toFixed(1)+'%':'—';
+  document.getElementById('b-remain').innerHTML=costT>budget?`<span style="color:var(--coral)">₱${(costT-budget).toFixed(2)} over</span>`:`₱${(budget-costT).toFixed(2)} left`;
+
+  // qstat animated numbers
+  ['q-kwh','q-day','q-count'].forEach(id=>{
+    let el=document.getElementById(id);
+    let val=id==='q-kwh'?kwhT.toFixed(1):id==='q-day'?dailyKwh.toFixed(1):appliances.length;
+    let newText=String(val);
+    if(el.innerText!==newText){el.innerText=newText;el.classList.remove('num-pop');void el.offsetWidth;el.classList.add('num-pop');}
+  });
+
+  if(vamp){document.getElementById('vamp-name').innerText=vamp.name;document.getElementById('vamp-detail').innerText=vampKwh.toFixed(2)+' kWh/mo · ₱'+(vampKwh*rate).toFixed(2);}
+  else{document.getElementById('vamp-name').innerText='—';document.getElementById('vamp-detail').innerText='Add appliances';}
+
+  // Grade
+  let gp=document.getElementById('grade-pill');
+  let gradeRing=document.getElementById('big-grade');
+  let gradeTitle=document.getElementById('big-grade-title');
+  let gradeDetail=document.getElementById('big-grade-detail');
+  if(budget===0||appliances.length===0){gp.innerText='?';gp.className='';gradeRing.innerText='?';gradeRing.className='grade-ring q';gradeTitle.innerText='No Budget';gradeDetail.innerText='Set budget in settings.';}
+  else if(pct<=80){gp.innerText='A';gp.className='';gradeRing.innerText='A';gradeRing.className='grade-ring';gradeTitle.innerText='Excellent — Grade A ✓';gradeDetail.innerText='Well within budget!';}
+  else if(pct<=100){gp.innerText='C';gp.className='grade-C';gradeRing.innerText='C';gradeRing.className='grade-ring C';gradeTitle.innerText='Caution — Grade C';gradeDetail.innerText='Approaching limit.';}
+  else{gp.innerText='F';gp.className='grade-F';gradeRing.innerText='F';gradeRing.className='grade-ring F';gradeTitle.innerText='Over Budget — Grade F';gradeDetail.innerText='Exceeded budget.';}
+
+  // Sorted appliances
+  let sorted=[...appliances].sort((a,b)=>costMonth(b)-costMonth(a));
+
+  document.getElementById('grade-breakdown').innerHTML=sorted.map((a,i)=>`<div class="leaf-card" style="animation-delay:${i*.05}s"><div class="lc-icon">${appIcon(a.name)}</div><div class="lc-body"><div class="lc-name">${esc(a.name)}</div><div class="lc-meta">${a.watts}W · ${a.hours}h/day</div></div><div class="lc-right"><div class="lc-kwh">${kwhMonth(a).toFixed(1)} kWh</div><div class="lc-cost">₱${costMonth(a).toFixed(2)}</div></div></div>`).join('')||'<div class="empty-state">No appliances</div>';
+
+  document.getElementById('home-list').innerHTML=appliances.length?sorted.slice(0,5).map((a,i)=>`<div class="leaf-card" style="animation-delay:${i*.05}s"><div class="lc-icon">${appIcon(a.name)}</div><div class="lc-body"><div class="lc-name">${esc(a.name)}</div><div class="lc-meta">${a.watts}W · ${a.hours}h/d</div></div><div class="lc-right"><div class="lc-kwh">${kwhMonth(a).toFixed(1)} kWh</div><div class="lc-cost">₱${costMonth(a).toFixed(2)}</div></div></div>`).join(''):'<div class="empty-state"><span style="font-size:2rem">➕</span><p style="margin-top:8px;color:var(--text-dim)">Tap + to add appliances</p></div>';
+
+  document.getElementById('inv-list').innerHTML=appliances.map((a,i)=>`<div class="leaf-card" style="animation-delay:${i*.04}s"><div class="lc-icon">${appIcon(a.name)}</div><div class="lc-body"><div class="lc-name">${esc(a.name)}</div><div class="lc-meta">${a.watts}W × ${a.qty} · ${a.hours}h/d</div><div class="lc-actions"><button class="lc-btn" onclick="startEdit('${a.id}')">✏️ Edit</button><button class="lc-btn lc-btn-del" onclick="deleteAppliance('${a.id}')">🗑 Delete</button></div></div><div class="lc-right"><div class="lc-kwh">${kwhMonth(a).toFixed(1)} kWh</div><div class="lc-cost">₱${costMonth(a).toFixed(2)}</div></div></div>`).join('')||'<div class="empty-state"><span style="font-size:2rem">🔌</span><p style="margin-top:8px;color:var(--text-dim)">No appliances yet</p></div>';
+
+  // Alerts
+  let alerts=[];
+  if(budget>0&&costT>budget)alerts.push({cls:'alert-danger',msg:`🚨 Over budget by ₱${(costT-budget).toFixed(2)}`});
+  else if(pct>=80)alerts.push({cls:'alert-warn',msg:`⚠️ ${pct.toFixed(1)}% of budget used`});
+  let now=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Manila'}));
+  if(now.getHours()>=18&&now.getHours()<21)alerts.push({cls:'alert-info',msg:'⚡ Peak hours 6–9 PM — shift usage to save'});
+  document.getElementById('alerts').innerHTML=alerts.map((m,i)=>`<div class="alert ${m.cls}" style="animation-delay:${i*.08}s">${m.msg}</div>`).join('');
+
+  document.getElementById('home-count').innerText=appliances.length+' items';
+  document.getElementById('inv-count').innerText=appliances.length;
+  updateLifelineCard();
+  renderUnbundledChart();
+}
+
+// ── SETTINGS ACTIONS ──
+function useANECORates(){
+  rate=getANECORate();
+  document.getElementById('s-rate').value=rate.toFixed(4);
+  document.getElementById('rateDetail').innerHTML=`₱${rate.toFixed(4)}/kWh total`;
+  save(); render();
+  showToast('✅ ANECO official rates applied');
+}
+function showRateDetails(){
+  let vat=(ANECO_RATES.generation+ANECO_RATES.transmission+ANECO_RATES.systemLoss)*0.12;
+  alert(`📋 ANECO Unbundled (₱/kWh):\nGeneration ${ANECO_RATES.generation}\nTransmission ${ANECO_RATES.transmission}\nSystem Loss ${ANECO_RATES.systemLoss}\nDistribution ${ANECO_RATES.distribution}\nSupply/Meter ${(ANECO_RATES.supply+ANECO_RATES.metering).toFixed(4)}\nSubsidies/Fees ${(ANECO_RATES.lifelineSubsidy+ANECO_RATES.seniorSubsidy+ANECO_RATES.environmental+ANECO_RATES.missionary).toFixed(4)}\nVAT ${vat.toFixed(4)}\nTOTAL ${getANECORate().toFixed(4)}`);
+}
+function resetDefaults(){
+  rate=getANECORate(); budget=1000;
+  document.getElementById('s-rate').value=rate.toFixed(4);
+  document.getElementById('s-budget').value=budget;
+  document.getElementById('rateDetail').innerHTML=`₱${rate.toFixed(4)}/kWh total`;
+  save(); render(); fetchTips();
+  showToast('🔄 Settings reset to defaults');
+}
+function exportData(){
+  let blob=new Blob([JSON.stringify({appliances,rate,budget})],{type:'application/json'});
+  let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='aneco-saver-data.json'; a.click(); URL.revokeObjectURL(a.href);
+  showToast('📤 Data exported');
+}
+function importData(e){
+  let file=e.target.files[0]; if(!file)return;
+  let r=new FileReader(); r.onload=ev=>{try{let d=JSON.parse(ev.target.result);if(Array.isArray(d.appliances))appliances=d.appliances;if(typeof d.rate==='number')rate=d.rate;if(typeof d.budget==='number')budget=d.budget;document.getElementById('s-rate').value=rate;document.getElementById('s-budget').value=budget;document.getElementById('rateDetail').innerHTML=`₱${rate.toFixed(4)}/kWh total`;save();render();fetchTips();showToast('📥 Data imported!');}catch(err){showToast('❌ Invalid file');}e.target.value='';};r.readAsText(file);
+}
+function clearAll(){
+  if(confirm('Delete all appliances?')){appliances=[];editingId=null;closeSheet();save();render();fetchTips();showToast('🗑 All appliances cleared');}
+}
+
+// ── APPLIANCE ACTIONS ──
+function startEdit(id){
+  let a=appliances.find(x=>x.id===id); if(!a)return;
+  editingId=id;
+  document.getElementById('f-name').value=a.name;
+  document.getElementById('f-watts').value=a.watts;
+  document.getElementById('f-qty').value=a.qty;
+  document.getElementById('f-hours').value=a.hours;
+  document.getElementById('f-freq').value=a.freq;
+  document.getElementById('sheet-title').innerText='Edit Appliance';
+  document.getElementById('btn-submit').innerText='💾 Save Changes';
+  openSheet();
+}
+function deleteAppliance(id){
+  if(confirm('Delete this appliance?')){
+    appliances=appliances.filter(a=>a.id!==id);
+    if(editingId===id)cancelEdit();
+    save(); render(); fetchTips();
+    showToast('🗑 Appliance deleted');
+  }
+}
+
+// ── SHEET ──
+function openSheet(){
+  document.getElementById('form-sheet').classList.add('open');
+  document.getElementById('fab').classList.add('active');
+  setTimeout(()=>document.getElementById('f-name').focus(),350);
+}
+function closeSheet(){
+  document.getElementById('form-sheet').classList.remove('open');
+  document.getElementById('fab').classList.remove('active');
+  if(editingId)cancelEdit();
+}
+function cancelEdit(){
+  editingId=null;
+  document.getElementById('sheet-title').innerText='Add Appliance';
+  document.getElementById('btn-submit').innerText='Add Appliance';
+  clearForm();
+}
+function clearForm(){
+  document.getElementById('f-name').value='';
+  document.getElementById('f-watts').value='';
+  document.getElementById('f-hours').value='';
+  document.getElementById('f-qty').value='1';
+  document.getElementById('f-freq').value='daily';
+}
+function submitForm(){
+  let name=document.getElementById('f-name').value.trim();
+  let watts=parseFloat(document.getElementById('f-watts').value);
+  let qty=parseInt(document.getElementById('f-qty').value);
+  let hours=parseFloat(document.getElementById('f-hours').value);
+  let freq=document.getElementById('f-freq').value;
+  if(!name||isNaN(watts)||watts<=0||isNaN(qty)||qty<1||isNaN(hours)||hours<0){showToast('⚠️ Please fill all fields correctly');return;}
+  if(editingId){
+    let idx=appliances.findIndex(a=>a.id===editingId);
+    if(idx>-1)appliances[idx]={...appliances[idx],name,watts,qty,hours,freq};
+    showToast(`✅ ${name} updated`);
+    editingId=null;
+  } else {
+    appliances.push({id:uid(),name,watts,qty,hours,freq});
+    showToast(`✅ ${name} added`);
+  }
+  closeSheet(); clearForm(); save(); render(); fetchTips();
+}
+
+// ── VIEW SWITCHING ──
+let currentView='home';
+function switchView(name,btn){
+  if(name===currentView)return;
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  let target=document.getElementById('view-'+name);
+  target.style.animation='none';
+  void target.offsetWidth;
+  target.style.animation='';
+  target.classList.add('active');
+  btn.classList.add('active');
+  currentView=name;
+  document.getElementById('scroll-area').scrollTop=0;
+}
+
+// ── CLOCK ──
+function tickClock(){
+  let d=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Manila'}));
+  let h12=d.getHours()%12||12;
+  document.getElementById('clock').innerText=`${h12}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')} ${d.getHours()>=12?'PM':'AM'} PHT`;
+  document.getElementById('peak-pill').style.display=(d.getHours()>=18&&d.getHours()<21)?'flex':'none';
+}
+
+// ── TIPS ──
+async function handleRefresh(btn){
+  btn.querySelector?btn.style.opacity='.6':null;
+  let icon=btn.innerText.slice(0,2);
+  btn.innerText='🔄 Loading...';
+  btn.disabled=true;
+  await fetchTips();
+  btn.innerText='🔄 Refresh';
+  btn.disabled=false;
+}
+
+async function fetchTips(){
+  let tipsDiv=document.getElementById('tips-container');
+  if(!appliances.length){tipsDiv.innerHTML='<div class="empty-state"><span style="font-size:2rem">💡</span><p style="margin-top:8px;color:var(--text-dim)">Add appliances to see personalized tips</p></div>';return;}
+  tipsDiv.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-dim)"><div style="font-size:1.5rem;margin-bottom:8px;animation:spin .7s linear infinite;display:inline-block">🌀</div><br>Generating ANECO insights...</div>';
+  await new Promise(r=>setTimeout(r,600));
+  let{kwhT,costT}=calcTotals();
+  let tipsHtml=[
+    {ico:'💡',title:'Shift to Off-Peak Hours',text:'Avoid 6–9 PM peak hours to reduce system load.',save:'~₱150/mo'},
+    {ico:'🌾',title:'Lifeline Discount',text:'Keep usage under 100 kWh/month to qualify for a 20% lifeline discount.',save:'~20% off'},
+    {ico:'❄️',title:'Aircon Efficiency',text:'Set aircon to 26–28°C. Each degree lower adds ~8% to energy use.',save:'~₱200/mo'},
+    {ico:'🌙',title:'Standby Power',text:'Unplug devices on standby — they consume 5–10% of your bill silently.',save:'~₱80/mo'},
+    {ico:'☀️',title:'Natural Lighting',text:'Open curtains during daytime to reduce artificial lighting needs.',save:'~₱40/mo'},
+    {ico:'🧺',title:'Full Washer Loads',text:'Run washing machine only with full loads to maximize efficiency.',save:'~₱60/mo'},
+  ];
+  tipsDiv.innerHTML=tipsHtml.map((t,i)=>`<div class="tip-card" style="animation-delay:${i*.07}s"><div class="tip-ico">${t.ico}</div><div class="tip-body"><div class="tip-title">${t.title}</div><div style="font-size:.82rem;color:var(--text-dim);margin-top:4px">${t.text}</div><span class="tip-save">Save ${t.save}</span></div></div>`).join('');
+}
+
+// ── INIT ──
+function init(){
+  try{let saved=localStorage.getItem('esp_appliances');if(saved)appliances=JSON.parse(saved);}catch(e){}
+  let savedRate=parseFloat(localStorage.getItem('esp_rate'));
+  rate=(savedRate&&savedRate>0)?savedRate:getANECORate();
+  budget=parseFloat(localStorage.getItem('esp_budget'))||1000;
+  document.getElementById('s-rate').value=rate.toFixed(4);
+  document.getElementById('s-budget').value=budget;
+  document.getElementById('rateDetail').innerHTML=`₱${rate.toFixed(4)}/kWh total`;
+
+  document.getElementById('s-rate').addEventListener('input',e=>{rate=parseFloat(e.target.value)||0;save();render();document.getElementById('rateDetail').innerHTML=`₱${rate.toFixed(4)}/kWh total`;});
+  document.getElementById('s-budget').addEventListener('input',e=>{budget=parseFloat(e.target.value)||0;save();render();});
+  document.getElementById('useAnecoBtn').onclick=useANECORates;
+  document.getElementById('showRateDetailsBtn').onclick=showRateDetails;
+  document.getElementById('btn-refresh').onclick=function(){handleRefresh(this);};
+  document.getElementById('file-input').onchange=importData;
+
+  // Swipe to close sheet
+  let startY=0;
+  document.querySelector('.sheet-panel').addEventListener('touchstart',e=>{startY=e.touches[0].clientY;},{passive:true});
+  document.querySelector('.sheet-panel').addEventListener('touchmove',e=>{if(e.touches[0].clientY-startY>60)closeSheet();},{passive:true});
+
+  render(); tickClock(); setInterval(tickClock,1000); fetchTips();
+
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+  setInterval(()=>{
+    let h=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Manila'})).getHours();
+    if(h===18||h===21){if(Notification.permission==='granted')navigator.serviceWorker.ready.then(reg=>reg.showNotification(h===18?'⚡ Peak Hours Started':'🌙 Peak Hours Ended',{body:h===18?'Shift heavy use to save':'Off-peak rates active now',icon:'/icons/icon-192x192.png'}));}
+  },60000);
+
+  if('Notification' in window&&Notification.permission==='default')setTimeout(()=>Notification.requestPermission(),5000);
+
+  // Entrance animation for hero card
+  let hero=document.querySelector('.hero-card');
+  hero.style.transform='translateY(20px)';hero.style.opacity='0';
+  setTimeout(()=>{hero.style.transition='transform .6s cubic-bezier(0.34,1.56,0.64,1), opacity .5s ease';hero.style.transform='';hero.style.opacity='1';},100);
+}
+
+init();
+</script>
+</body>
+</html>
